@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>All Content</title>
+  <meta about="Search all content at once." />
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, height=device-height">
+  <link rel="stylesheet" href="https://static.cloud.coveo.com/searchui/v2.10087/css/CoveoFullSearch.css"/>
+  <script src="https://static.cloud.coveo.com/searchui/v2.10087/js/CoveoJsSearch.Lazy.js"></script>
+  <script src="https://static.cloud.coveo.com/searchui/v2.10087/js/templates/templates.js"></script>
+  <script>
+      const storeId= "1";
+      const searchTab = "All2";
+      const language = "en-US";
+      const currentSKU = "6361550";
+      const currentSKUs = ["6361550"];
+  
+    document.addEventListener("DOMContentLoaded", () => {
+      //The coveo VisitorId will be set by the coveoua library
+      const searchBoxRoot = document.getElementById("searchbox");
+      // 2. Configure a search endpoint
+      // isGuestUser == anonymous
+      // User is anonymous
+      // Must be done when constructing the endpoint
+      // Get more recommendations, must be done in the endpoint configuration
+      const mlPars= { 
+         //num: 5, 
+         //itemId, needed for frequentlyBought
+         //itemId: currentSKU,
+         //itemIds, needed for frequentlyViewed
+         itemIds: currentSKUs//,
+         
+      };
+      
+
+      const searchEndpoint = new Coveo.SearchEndpoint({
+        restUri: 'https://platform.cloud.coveo.com/rest/search',
+        accessToken: 'xx64c46a67-6405-41b6-9f10-1e551cbeef82',
+        queryStringArguments: {
+          mlParameters: JSON.stringify(mlPars)
+        },
+        isGuestUser:true
+      });
+      //Assign default endpoint 
+      Coveo.SearchEndpoint.endpoints['default'] = searchEndpoint;
+
+      // 3. Initialize the search interface
+      Coveo.init(document.body);
+      // Initialize the recommendation interface.
+      Coveo.initRecommendation(Coveo.$$(document).find("#recFreqBought"));
+      Coveo.initRecommendation(Coveo.$$(document).find("#recFreqViewed"));
+
+      //Query suggest
+      Coveo.$$(document.body).on('buildingQuerySuggest', function (e, args) {
+        //Tab == originLevel2
+        args.payload.tab = searchTab;
+        //locale == language
+        //Setting Locale
+        args.payload.locale = language;
+        //Setting context
+        args.payload.context = {
+          "storeid": storeId
+        };
+      });
+
+      //Normal query
+      Coveo.$$(document.body).on('buildingQuery', function (e, args) {
+        //Tab == originLevel2
+        //Handled by CoveoTab component
+        //args.queryBuilder.tab = searchTab;
+        //locale == language
+        //Setting Locale
+        args.queryBuilder.locale = language;
+        //Setting context
+        args.queryBuilder.addContext({
+          "storeid": storeId
+        });
+        
+      });
+
+      //Recommendation query
+      Coveo.$$(document.getElementById('recFreqBought')).on('buildingQuery', function (e, args) {
+        //Tab == originLevel2
+        //Handled by CoveoTab component
+        //args.queryBuilder.tab = searchTab;
+        //locale == language
+        //Setting Locale
+        args.queryBuilder.locale = language;
+        //Setting context
+        args.queryBuilder.addContext({
+          "storeid": storeId
+        });
+        
+      });
+       //Recommendation query
+       Coveo.$$(document.getElementById('recFreqViewed')).on('buildingQuery', function (e, args) {
+        //Tab == originLevel2
+        //Handled by CoveoTab component
+        //args.queryBuilder.tab = searchTab;
+        //locale == language
+        //Setting Locale
+        args.queryBuilder.locale = language;
+        //Setting context
+        args.queryBuilder.addContext({
+          "storeid": storeId
+        });
+        
+      });
+  
+      Coveo.$$(document.body).on('changeAnalyticsCustomData', function(e, args) {
+        //Not necessary, CoveoTab is handling this
+        //args.originLevel2 = searchTab;
+        args.language = language;
+        //Check if this is a click event, if so, add additional 'details' event
+        if (args.type === 'ClickEvent') {
+          let product={};
+          product['id']= args.resultData.raw['sku'];
+          product['name']= args.resultData.raw['title'];
+          product['brand']= args.resultData.raw['ec_brand'];
+          product['category']= args.resultData.raw['ec_category'].join(';');
+          product['price']= args.resultData.raw['ec_price'];
+          product['variant']= args.resultData.raw['sku'];
+          product['position']= (args.resultData.index+1);
+          coveoua('set', 'custom',  {
+            context_storeid: storeId
+          });
+          coveoua('ec:addProduct', product);
+          coveoua('ec:setAction', 'detail');
+          coveoua('send', 'event');
+        }
+        //Context is already set on the endpoint, so that will be used by the normal Analtyics call
+      })
+
+      function changeAnalyticsCustomData(e, args) {
+        //Not necessary, CoveoTab is handling this
+        //args.originLevel2 = searchTab;
+        args.language = language;
+        //Must be defined as dimension
+        args.metaObject.c_from_recommendation = true;
+        if (args.type === 'ClickEvent') {
+          let product={};
+          product['id']= args.resultData.raw['ec_product_id'];
+          product['name']= args.resultData.raw['title'];
+          product['brand']= args.resultData.raw['ec_brand'];
+          product['category']= args.resultData.raw['ec_category'].join(';');
+          product['price']= args.resultData.raw['ec_price'];
+          product['variant']= args.resultData.raw['ec_product_id'];
+          product['position']= (args.resultData.index+1);
+          coveoua('set', 'custom',  {
+            context_storeid: storeId,
+            context_from_recommendation: true
+          });
+          coveoua('ec:addProduct', product);
+          coveoua('ec:setAction', 'detail');
+          coveoua('send', 'event');
+        }
+        //Context is already set on the endpoint, so that will be used by the Analtyics call
+      }
+      //Change analytics data for recommendations
+      Coveo.$$(document.getElementById('recFreqBought')).on('changeAnalyticsCustomData', changeAnalyticsCustomData);
+      Coveo.$$(document.getElementById('recFreqViewed')).on('changeAnalyticsCustomData', changeAnalyticsCustomData);
+    });
+    </script>ADD ALL RECOMMENDATION MODELS
+</head>
+
+<body id="search" class='CoveoSearchInterface' data-enable-history="true">
+  <div style="border:2px solid red;width:100%;">
+    Make sure you create a <b>Recommendation pipeline</b><br>
+    Route with a condition like: <b>SearchHub contains <i>REC - </i></b><br>
+    Within the Query Pipeline activate the ML Model using:<br>
+    Condition: <b>SearchHub is <i>REC - Popular Bought</i></b>
+    Condition: <b>SearchHub is <i>REC - Popular Viewed</i></b>
+  </div>
+  <div class="CoveoAnalytics" data-anonymous='true' data-search-hub="MainSearch"></div>
+
+  <div class="CoveoFolding"></div>
+  <div class="coveo-tab-section">
+    <a class="CoveoTab" data-id="All" data-caption="All Content" data-expression=""></a>
+    <a class="CoveoTab" data-id="FAQ" data-caption="FAQ"></a>
+  </div>
+  <div class='coveo-search-section'>
+    <div class="CoveoSearchbox" data-enable-omnibox="true"></div>
+  </div>
+  <div class="coveo-main-section">
+    <div class="coveo-facet-column">
+      <div class="CoveoFacet" data-title="Type" data-field="@objecttype" data-tab="All"></div>
+      <div class="CoveoFacet" data-title="FileType" data-field="@filetype" data-tab="All"></div>
+      <div class="CoveoFacet" data-title="Author" data-field="@author" data-tab="All"></div>
+      <div class="CoveoTimespanFacet" data-tab="All"></div>
+    </div>
+    <div class="coveo-results-column" style="width:50%">
+      <div class="CoveoShareQuery"></div>
+      <div class="CoveoExportToExcel"></div>
+      <div class="CoveoPreferencesPanel">
+        <div class="CoveoResultsPreferences"></div>
+        <div class="CoveoResultsFiltersPreferences"></div>
+      </div>
+      <div class="CoveoBreadcrumb"></div>
+      <div class="CoveoDidYouMean"></div>
+      <div class="coveo-results-header">
+        <div class="coveo-summary-section">
+          <span class="CoveoQuerySummary"></span>
+          <span class="CoveoQueryDuration"></span>
+        </div>
+        <div class="coveo-result-layout-section">
+          <span class="CoveoResultLayoutSelector"></span>
+        </div>
+        <div class="coveo-sort-section">
+          <span class="CoveoSort" data-sort-criteria="relevancy" data-caption="Relevance"></span>
+          <span class="CoveoSort" data-sort-criteria="date descending,date ascending" data-caption="Date"></span>
+        </div>
+      </div>
+      <div class="CoveoHiddenQuery"></div>
+      <div class="CoveoErrorReport"></div>
+      <div class="CoveoResultList" data-layout="list" data-wait-animation="fade" data-auto-select-fields-to-include="true" data-fields-to-include="@ec_brand,@ec_category,@ec_price,@sku"></div>
+      
+      <div class="CoveoPager"></div>
+      <div class="CoveoLogo"></div>
+      <div class="CoveoResultsPerPage"></div>
+    </div>
+    <div class="recommendations-column" style="width: 20%;display: inline; position: absolute; top: 1px;   right: 1px;">
+        <div id="recFreqBought"
+          class="CoveoRecommendation"
+          data-results-per-page="5"
+          data-id="frequentBought"
+          data-pipeline="">
+          <div class="CoveoAnalytics" ></div>
+          <div class="coveo-recommendation-header">
+            <div class="coveo-recommendation-title">Frequently Bought<br>using specific SKU</div>
+          </div>
+          <div class="coveo-recommendation-body">
+            <div class="CoveoResultList">
+                <script id="myTemplate" class="result-template"
+                type="text/html">
+                <div class="CoveoQuickview"></div>
+                    <a class="CoveoResultLink"
+                      style="font-size:18px;"></a>
+              </script>
+            </div>
+          </div>
+        </div><!--rec-->
+      <div id="recFreqViewed"
+        class="CoveoRecommendation"
+        data-results-per-page="5"
+        data-id="frequentViewed"
+        data-pipeline="">
+        <div class="CoveoAnalytics" ></div>
+        <div class="coveo-recommendation-header">
+          <div class="coveo-recommendation-title">Frequently Viewed<br>using specific SKUs</div>
+        </div>
+        <div class="coveo-recommendation-body">
+          <div class="CoveoResultList">
+              <script id="myTemplate" class="result-template"
+              type="text/html">
+              <div class="CoveoQuickview"></div>
+                  <a class="CoveoResultLink"
+                    style="font-size:18px;"></a>
+            </script>
+          </div>
+        </div>
+      </div><!--rec-->
+    </div> 
+</div>
+</body>
+
+</html>

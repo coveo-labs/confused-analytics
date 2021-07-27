@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- IMPORTANT, set the proper language -->
+<html lang="en">
+<head>
+  <title>Sent pageview</title>
+    
+  <script type="text/javascript"
+  src="https://static.cloud.coveo.com/coveo.analytics.js/coveoua.js">
+  </script>
+  <script>
+    const storeId= "1";
+  // Send pageview view events.
+  coveoua("init", "xx564559b1-0045-48e1-953c-3addd1ee4457");
+  coveoua("send", "pageview", {
+    //@clickableuri or @permanentid
+    contentIdKey: "clickableuri",
+    //window.location.href or result.raw[permanentid]
+    contentIdValue: window.location.href,
+    contentType: "ProductPage",
+    context_storeid: storeId
+  });
+
+  
+  </script>
+</head>
+<header>
+</header>
+<body>
+  <p>Page content...</p>
+</body>
+</html>

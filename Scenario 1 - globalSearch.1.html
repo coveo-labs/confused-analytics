@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Standalone Search Box Example</title>
+  <link rel="stylesheet" href="https://static.cloud.coveo.com/searchui/v2.10087/css/CoveoFullSearch.css"/>
+  <script class="coveo-script" src="https://static.cloud.coveo.com/searchui/v2.10087/js/CoveoJsSearch.Lazy.min.js"></script>
+  <script>
+    const storeId= "1";
+    const searchTab = "All";
+    const language = "en";
+
+    function getVisitor() {
+      return localStorage.getItem('visitorId');
+    }
+
+    function uuidv4() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const cookieVal = getVisitor();
+    const visitorId = cookieVal?cookieVal:uuidv4();
+    //The coveo VisitorId will be set by the coveoua library
+    const searchBoxRoot = document.getElementById("searchbox");
+    // 2. Configure a search endpoint
+    // isGuestUser == anonymous
+    // User is anonymous
+    // Done in the endpoint
+    Coveo.SearchEndpoint.configureCloudV2Endpoint("", "xx564559b1-0045-48e1-953c-3addd1ee4457","https://platform.cloud.coveo.com/rest/search",{isGuestUser:true});
+    // 3. Initialize a Searchbox component
+    Coveo.initSearchbox(
+      searchBoxRoot,
+      "Scenario 3 - search.html"
+    );
+    Coveo.$$(searchBoxRoot).on('buildingQuerySuggest', function (e, args) {
+      //Tab == originLevel2
+      args.payload.tab = searchTab;
+      //locale == language
+      //Setting Locale
+      args.payload.locale = language;
+      //Setting context
+      args.payload.context = {
+        "storeid": storeId
+      };
+    });
+
+    Coveo.$$(searchBoxRoot).on('changeAnalyticsCustomData', function(e, args) {
+      args.originLevel2 = searchTab;
+      args.language = language;
+    })
+  });
+  </script>
+    
+  <script type="text/javascript"
+  src="https://static.cloud.coveo.com/coveo.analytics.js/coveoua.js">
+  </script>
+  <script>
+  // Send pageview view events.
+  coveoua("init", "xx564559b1-0045-48e1-953c-3addd1ee4457");
+  coveoua("send", "pageview", {
+    //@clickableuri or @permanentid
+    contentIdKey: "clickableuri",
+    //window.location.href or result.raw[permanentid]
+    contentIdValue: window.location.href,
+    contentType: "ProductPage",
+    context_storeid: storeId
+  });
+
+  
+  </script>
+</head>
+<header>
+  <!-- Standalone search box. -->
+  <div id="searchbox">
+    <div class="CoveoAnalytics" data-anonymous='true' data-search-hub="globalSearchPage"></div>
+    <div class="CoveoSearchbox"></div>
+  </div>
+</header>
+<body>
+  <p>Page content...</p>
+</body>
+</html>
